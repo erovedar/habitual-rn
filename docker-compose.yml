@@ -1,0 +1,14 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: habitual
+      POSTGRES_PASSWORD: habitual
+      POSTGRES_DB: habitual
+    ports:
+      - "5433:5432"
+    volumes:
+      - habitual_pgdata:/var/lib/postgresql/data
+
+volumes:
+  habitual_pgdata:

@@ -1,0 +1,24 @@
+{
+  "name": "habitual",
+  "private": true,
+  "version": "0.0.0",
+  "workspaces": [
+    "shared",
+    "server",
+    "mobile"
+  ],
+  "scripts": {
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "oxlint",
+    "test": "npm run test --workspaces --if-present",
+    "migrate": "node-pg-migrate -m migrations -d DATABASE_URL",
+    "migrate:up": "npm run migrate up",
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose down"
+  },
+  "devDependencies": {
+    "node-pg-migrate": "^7.6.1",
+    "oxlint": "^0.15.0",
+    "typescript": "~5.9.3"
+  }
+}
