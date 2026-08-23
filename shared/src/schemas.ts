@@ -17,6 +17,14 @@ export const loginSchema = z.object({
   password: passwordSchema,
 });
 
+// Same shape as signup: upgrading a guest account attaches a password
+// identity and backfills email/displayName on the existing user row.
+export const upgradeSchema = signupSchema;
+
+export const refreshSchema = z.object({
+  refreshToken: z.string().min(1),
+});
+
 const reminderTimeSchema = z
   .string()
   .regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'expected 24-hour "HH:MM"');
