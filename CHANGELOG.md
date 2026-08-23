@@ -2,6 +2,75 @@
 
 Session-by-session log of what changed, issues hit, and what's next. Newest entry first.
 
+## 2026-08-23 — Phase 1: Auth backend, with guest/anonymous accounts
+
+### Added
+- `migrations/0002_auth_tokens.sql` — drops the `NOT NULL` on `users.email` (replaced with a
+  partial unique index, `where email is not null`) so a guest account can exist without one, and
+  adds `refresh_tokens` (token stored as a sha256 hash, never raw; rotated on every use so a
+  replayed refresh token is detectable).
+- `server/src/auth/token.ts` — `signAccessToken`/`verifyAccessToken` (15-minute JWTs) and
+  `issueTokens()`, the one place a session (access + refresh token pair) comes into existence.
+  Covered by `token.test.ts` (round-trip, tampered-secret, malformed-token, hash determinism).
+- `server/src/auth/auth.repo.ts` — user/auth-identity/refresh-token queries with snake_case ↔
+  camelCase mapping, following the existing repo-file convention.
+- `server/src/auth/auth.routes.ts`, mounted at `/auth`:
+  - `POST /signup`, `POST /login` — standard password flow against `auth_identities`.
+  - `POST /anonymous` — creates a real guest `users` row (`email: null`, `displayName: 'Guest'`)
+    plus an `anonymous` auth identity, and returns tokens exactly like signup/login. This is what
+    lets someone open the app and start using it with no signup step.
+  - `POST /upgrade` (authenticated) — attaches a `password` identity to the *caller's own*
+    `user_id` and backfills email/displayName, so a guest's habits and check-ins carry over
+    untouched when they later decide to create a real account. No data migration needed by design
+    (see `CLAUDE.md`'s `auth_identities` rationale).
+  - `POST /refresh` — validates and rotates a refresh token.
+- `server/src/middleware/requireAuth.ts` — Bearer-token middleware, sets `req.userId`.
+- `errorHandler` now maps `ZodError` to `400` (with `issues`) instead of falling through to a
+  generic `500` — load-bearing for every future route, not just auth.
+- `shared`: `AuthTokens`/`AuthResponse` types, `User.email` widened to `string | null`,
+  `upgradeSchema`/`refreshSchema` added alongside the existing signup/login schemas.
+
+### Issues faced
+- **`@habitual/shared`'s `main` points straight at `src/index.ts`** (no build step), and its
+  `tsconfig.json` uses `moduleResolution: "Bundler"`, which tolerates extensionless relative
+  imports (`from './date'`). `server`'s `tsconfig.json` uses `NodeNext`, which does not. This
+  never surfaced before because nothing in `server/` had imported from `@habitual/shared` yet —
+  this session's auth code was the first to do so, and `tsc` immediately flagged every
+  extensionless internal import in `shared/src/*.ts`. Fixed by adding explicit `.js` extensions
+  throughout `shared/src` (valid under both `Bundler` and `NodeNext` resolution). While fixing
+  this, also found and removed a genuine ambiguous-export bug: `shared/src/index.ts` re-exported
+  `LocalDate`/`StreakSummary` twice (once via `export * from './date.js'`/`./streaks.js'`, once via
+  explicit re-exports in `types.ts`) — TypeScript only flags this (`TS2308`) once some consumer
+  actually resolves the module's full export table, which is exactly what adding the first
+  cross-package import triggered.
+- Could not verify `migrations/0002_auth_tokens.sql` against a live Postgres — Docker's daemon
+  wasn't running locally this session (`docker ps` failed to reach the socket). The SQL was
+  reviewed by hand but not executed; run `npm run db:up && npm run migrate:up` to confirm before
+  relying on it.
+
+### Next steps (rest of Phase 1)
+- **Mobile is still all placeholder screens** — this is the bulk of remaining Phase 1 work:
+  - An API client and token storage (`expo-secure-store`) for access/refresh tokens.
+  - App-launch flow: if no stored tokens, silently call `POST /auth/anonymous` and land the user
+    directly in `(app)/*` — no visible signup step, per this session's request.
+  - `AuthContext` wired to real login/signup screens, plus a "create an account" flow in
+    `settings.tsx` that calls `POST /auth/upgrade` for a signed-in guest.
+  - Refresh-token handling on 401 (call `/auth/refresh`, retry once, else drop back to a fresh
+    guest session).
+- Add `GET /auth/me` (mentioned in the original Phase 1 plan; not yet built).
+- No DB-backed integration tests exist yet for `auth.routes.ts` (only the pure `token.ts` logic is
+  unit-tested) — there's no test-database harness in this repo yet. Worth adding once habits/
+  check-ins need the same thing, rather than standing up test-DB infra for auth alone.
+- Deployment: confirmed with the user that Render needs both a **Web Service** (for `server/`,
+  build `npm run build --workspace server`, start `node server/dist/index.js`) and a **Render
+  Postgres** instance for `DATABASE_URL` — Postgres alone has nowhere to run the API. Migrations
+  aren't automated on deploy yet; `npm run migrate:up` would need to run as a one-off job against
+  the prod `DATABASE_URL` after any deploy that adds a migration.
+
+---
+
+*Generated 2026-08-23T16:19:22-0700 (PDT).*
+
 ## 2026-08-21 — Phase 0: project scaffolding
 
 ### Added

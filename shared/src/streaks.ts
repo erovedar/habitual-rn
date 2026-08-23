@@ -3,7 +3,7 @@
 // list of completion dates rather than maintained incrementally, so a
 // deleted or backfilled check-in can never leave a stale counter behind.
 
-import { compareLocalDates, diffDays, type LocalDate } from './date';
+import { compareLocalDates, diffDays, type LocalDate } from './date.js';
 
 export interface StreakSummary {
   currentStreak: number;

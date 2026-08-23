@@ -1,5 +1,7 @@
 import cors from 'cors';
 import express, { type Express } from 'express';
+import { authRouter } from './auth/auth.routes.js';
+import { pool } from './db/pool.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 export function createApp(): Express {
@@ -11,7 +13,9 @@ export function createApp(): Express {
     res.json({ ok: true });
   });
 
-  // auth/habits/checkins/summary routers mount here as they're built out
+  app.use('/auth', authRouter(pool));
+
+  // habits/checkins/summary routers mount here as they're built out
   // (Phase 1+) — see /Users/erovedar/.claude/plans/i-am-creating-a-sharded-seahorse.md
 
   app.use(errorHandler);
