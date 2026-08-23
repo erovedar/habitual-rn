@@ -17,6 +17,7 @@
     "db:down": "docker compose down"
   },
   "devDependencies": {
+    "dotenv": "^17.4.2",
     "node-pg-migrate": "^7.6.1",
     "oxlint": "^0.15.0",
     "typescript": "~5.9.3"
