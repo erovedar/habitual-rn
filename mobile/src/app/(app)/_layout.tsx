@@ -1,7 +1,7 @@
 import { Stack } from 'expo-router';
 
-// Wraps every authenticated screen. Auth-gating (redirect to (auth)/login
-// when signed out) lands in Phase 1.
+// Wraps every authenticated screen. Auth-gating happens one level up, in the
+// root layout's Stack.Protected.
 export default function AppLayout() {
   return <Stack screenOptions={{ headerShown: false }} />;
 }
