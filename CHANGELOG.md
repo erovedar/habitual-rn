@@ -2,6 +2,19 @@
 
 Session-by-session log of what changed, issues hit, and what's next. Newest entry first.
 
+## 2026-09-03 — Fix CI typecheck failure (dead `global.css` import)
+
+### Fixed
+- `mobile/src/constants/theme.ts` had `import '@/global.css';` left over from the Expo template.
+  Nativewind/Tailwind — the thing that would actually process a CSS import in a React Native
+  app — was never added as a dependency, and nothing in the mobile workspace (no babel/metro/
+  tailwind config) references `global.css` either. With no CSS-module type declaration for it,
+  `tsc --noEmit` failed with `TS2882: Cannot find module or type declarations for side-effect
+  import of '@/global.css'`, which was failing `npm run typecheck` in CI on every branch,
+  independent of whatever else a given PR changed. Fixed by deleting the unused import;
+  `global.css` itself is left in place (harmless, and un-wiring nativewind entirely is out of
+  scope here).
+
 ## 2026-08-23 — Phase 1: Auth backend, with guest/anonymous accounts
 
 ### Added
